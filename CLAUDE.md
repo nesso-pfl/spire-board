@@ -42,7 +42,7 @@ spire-board/
 **Backend (Rust):**
 - `backend/Cargo.toml` - Rust dependencies and project metadata
 - `backend/src/main.rs` - API server entry point
-- `backend/migrations/` - Database schema migrations (Drizzle)
+- `backend/migrations/` - Database schema migrations (SQLx)
 
 **Frontend (PureScript):**
 - `frontend/spago.yaml` - Spago build configuration
@@ -403,12 +403,13 @@ docker-compose up -d --build
 
 **Database:**
 - PostgreSQL 17
-- [Drizzle ORM](https://orm.drizzle.team/) - TypeScript ORM for database access
+- [SQLx](https://github.com/launchbadge/sqlx) - Async SQL toolkit with compile-time query verification
 
 **Key Dependencies:**
 - `actix-web` - Web framework
 - `actix-ws` - WebSocket support
-- Database driver for PostgreSQL
+- `sqlx` - Database access with PostgreSQL driver
+- `tokio` - Async runtime
 
 ### Frontend
 
@@ -452,7 +453,7 @@ docker-compose up -d --build
 - RESTful API design
 - WebSocket for real-time communication
 - Actix Web actors for concurrency
-- Drizzle ORM for type-safe database queries
+- SQLx for compile-time verified, type-safe database queries
 
 **Frontend Patterns:**
 - Component-based architecture (Halogen)
@@ -462,7 +463,7 @@ docker-compose up -d --build
 
 **Data Flow:**
 1. Frontend makes HTTP/WebSocket requests to backend
-2. Backend processes requests, queries database via Drizzle
+2. Backend processes requests, queries database via SQLx
 3. Backend returns JSON responses
 4. Frontend updates UI based on responses
 
