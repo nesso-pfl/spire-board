@@ -34,7 +34,7 @@ spire-board/
 │   ├── packages.dhall # PureScript packages
 │   └── package.json  # Turborepo scripts for frontend
 ├── docs/             # Documentation
-├── docker-compose.yml # Docker services (PostgreSQL, etc.)
+├── compose.yaml      # Docker services (PostgreSQL, etc.)
 ├── turbo.json        # Turborepo configuration
 ├── package.json      # Root package.json with workspaces
 ├── .env.example      # Environment variable template
@@ -55,7 +55,7 @@ spire-board/
 - `frontend/src/Main.purs` - Frontend application entry point
 
 **Infrastructure:**
-- `docker-compose.yml` - Docker services (PostgreSQL, etc.)
+- `compose.yaml` - Docker services (PostgreSQL, etc.)
 - `turbo.json` - Turborepo task pipeline configuration
 - `package.json` (root) - Workspace configuration and scripts
 - `.env` - Environment variables (not committed to git)
@@ -669,7 +669,7 @@ docker-compose exec postgres psql -U postgres -d spire_board
 - **Frontend Source:** `frontend/src/`
 - **Frontend Tests:** `frontend/test/`
 - **Database Migrations:** `backend/migrations/`
-- **Docker Config:** `docker-compose.yml`
+- **Docker Config:** `compose.yaml`
 - **Documentation:** `docs/`
 - **Build Output (Backend):** `backend/target/`
 - **Build Output (Frontend):** `frontend/output/`
