@@ -1,0 +1,16 @@
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "spago build --watch",
+    "build": "spago build",
+    "test": "spago test",
+    "repl": "spago repl",
+    "clean": "rm -rf output .spago"
+  },
+  "devDependencies": {
+    "purescript": "^0.15.15",
+    "spago": "^0.21.0"
+  }
+}
