@@ -25,15 +25,20 @@ spire-board/
 │   ├── src/          # Rust source code
 │   ├── migrations/   # Database migrations
 │   ├── tests/        # Backend tests
-│   └── Cargo.toml    # Rust dependencies
+│   ├── Cargo.toml    # Rust dependencies
+│   └── package.json  # Turborepo scripts for backend
 ├── frontend/         # PureScript web client
 │   ├── src/          # PureScript source code
 │   ├── test/         # Frontend tests
 │   ├── spago.yaml    # Spago configuration
-│   └── packages.dhall # PureScript packages
-├── docker/           # Docker configuration
-│   └── docker-compose.yml
+│   ├── packages.dhall # PureScript packages
+│   └── package.json  # Turborepo scripts for frontend
 ├── docs/             # Documentation
+├── docker-compose.yml # Docker services (PostgreSQL, etc.)
+├── turbo.json        # Turborepo configuration
+├── package.json      # Root package.json with workspaces
+├── .env.example      # Environment variable template
+├── .gitignore        # Git ignore rules
 └── CLAUDE.md         # AI assistant guide
 ```
 
@@ -50,8 +55,11 @@ spire-board/
 - `frontend/src/Main.purs` - Frontend application entry point
 
 **Infrastructure:**
-- `docker-compose.yml` - Local development environment
+- `docker-compose.yml` - Docker services (PostgreSQL, etc.)
+- `turbo.json` - Turborepo task pipeline configuration
+- `package.json` (root) - Workspace configuration and scripts
 - `.env` - Environment variables (not committed to git)
+- `.env.example` - Environment variable template
 
 ## Development Workflows
 
@@ -296,73 +304,83 @@ Before committing, verify:
 git clone <repository-url>
 cd spire-board
 
-# 2. Set up environment variables
+# 2. Install dependencies
+npm install
+
+# 3. Set up environment variables
 cp .env.example .env
 # Edit .env with your configuration
 
-# 3. Start Docker services
+# 4. Start Docker services
 docker-compose up -d
 
-# 4. Set up backend
-cd backend
-cargo build
-cargo run migrate  # Run database migrations
+# 5. Build all workspaces
+npm run build
 
-# 5. Set up frontend
-cd ../frontend
-spago build
+# 6. Run database migrations
+cd backend && cargo sqlx migrate run
 ```
 
 ### Running the Project
 
+**Using Turborepo (Recommended):**
+```bash
+# Run all development servers (backend + frontend)
+npm run dev
+
+# Build all workspaces
+npm run build
+
+# Run all tests
+npm run test
+
+# Run linter across all workspaces
+npm run lint
+
+# Format code across all workspaces
+npm run format
+```
+
+**Individual Workspace Commands:**
+
 **Backend (Rust/Actix):**
 ```bash
+# From root
+npm run dev --filter=backend
+
+# Or from backend directory
 cd backend
-
-# Development mode (with auto-reload)
-cargo watch -x run
-
-# Production mode
-cargo run --release
-
-# Run tests
-cargo test
-
-# Run linter
-cargo clippy
-
-# Format code
-cargo fmt
+cargo watch -x run          # Development mode (with auto-reload)
+cargo run --release         # Production mode
+cargo test                  # Run tests
+cargo clippy                # Run linter
+cargo fmt                   # Format code
 ```
 
 **Frontend (PureScript/Halogen):**
 ```bash
+# From root
+npm run dev --filter=frontend
+
+# Or from frontend directory
 cd frontend
-
-# Development mode (with auto-reload)
-spago build --watch
-
-# Build for production
-spago build
-
-# Run tests
-spago test
-
-# Format code
-purs-tidy format-in-place 'src/**/*.purs'
+spago build --watch         # Development mode (with auto-reload)
+spago build                 # Build for production
+spago test                  # Run tests
+purs-tidy format-in-place 'src/**/*.purs'  # Format code
 ```
 
 **Database:**
 ```bash
 # Run migrations
 cd backend
-cargo run migrate
+cargo sqlx migrate run
 
 # Create new migration
-cargo run migrate:create <migration-name>
+cargo sqlx migrate add <migration-name>
 
-# Rollback migration
-cargo run migrate:rollback
+# Revert last migration
+cargo sqlx migrate revert
 ```
 
 **Docker:**
@@ -439,6 +457,8 @@ docker-compose up -d --build
 - PureScript compiler
 - Spago
 - Docker & Docker Compose
+- Node.js & npm (for Turborepo and PureScript tooling)
+- Turborepo (for monorepo task orchestration)
 
 ## Architecture Patterns
 
@@ -606,21 +626,27 @@ This CLAUDE.md should be updated when:
 ### Essential Commands
 
 ```bash
+# Turborepo (from root)
+npm run dev             # Run all dev servers
+npm run build           # Build all workspaces
+npm run test            # Run all tests
+npm run lint            # Lint all workspaces
+npm run format          # Format all code
+
 # Git
 git status              # Check repository status
 git diff                # Review changes
 git log --oneline -10   # Recent commits
 
-# Backend (Rust)
-cd backend
+# Backend (Rust) - from backend/
 cargo build             # Build backend
 cargo run               # Run backend server
 cargo test              # Run tests
 cargo clippy            # Run linter
 cargo fmt               # Format code
+cargo sqlx migrate run  # Run migrations
 
-# Frontend (PureScript)
-cd frontend
+# Frontend (PureScript) - from frontend/
 spago build             # Build frontend
 spago build --watch     # Build with auto-reload
 spago test              # Run tests
