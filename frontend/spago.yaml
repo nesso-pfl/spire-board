@@ -1,0 +1,13 @@
+package:
+  name: spire-board-frontend
+  dependencies:
+    - aff
+    - console
+    - effect
+    - halogen
+    - prelude
+  test_dependencies: []
+
+workspace:
+  package_set:
+    registry: 54.3.0
