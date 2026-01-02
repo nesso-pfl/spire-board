@@ -10,36 +10,48 @@ This document provides comprehensive guidance for AI assistants working on the s
 
 ### Project Description
 
-This is a new project currently in the initial development phase. As the codebase evolves, this section should be updated with:
-- Project purpose and goals
-- Target users/audience
-- Key features and functionality
-- Technology stack
+spire-board is a web application with a clear separation between backend API and frontend client:
+- **Backend:** REST API server with WebSocket support
+- **Frontend:** Modern web UI for user interaction
+- **Architecture:** Client-server model with separate codebases
 
 ## Codebase Structure
 
 ### Directory Organization
 
-As the project develops, document the directory structure here:
-
 ```
 spire-board/
-├── src/              # Source code
-├── tests/            # Test files
+├── backend/          # Rust API server
+│   ├── src/          # Rust source code
+│   ├── migrations/   # Database migrations
+│   ├── tests/        # Backend tests
+│   └── Cargo.toml    # Rust dependencies
+├── frontend/         # PureScript web client
+│   ├── src/          # PureScript source code
+│   ├── test/         # Frontend tests
+│   ├── spago.yaml    # Spago configuration
+│   └── packages.dhall # PureScript packages
+├── docker/           # Docker configuration
+│   └── docker-compose.yml
 ├── docs/             # Documentation
-├── config/           # Configuration files
-└── scripts/          # Build and utility scripts
+└── CLAUDE.md         # AI assistant guide
 ```
-
-**Note:** Update this structure as directories are created.
 
 ### Key Files and Their Purposes
 
-Document important files as they are created:
-- Configuration files (package.json, tsconfig.json, etc.)
-- Entry points
-- Core modules
-- Build scripts
+**Backend (Rust):**
+- `backend/Cargo.toml` - Rust dependencies and project metadata
+- `backend/src/main.rs` - API server entry point
+- `backend/migrations/` - Database schema migrations (Drizzle)
+
+**Frontend (PureScript):**
+- `frontend/spago.yaml` - Spago build configuration
+- `frontend/packages.dhall` - PureScript package dependencies
+- `frontend/src/Main.purs` - Frontend application entry point
+
+**Infrastructure:**
+- `docker-compose.yml` - Local development environment
+- `.env` - Environment variables (not committed to git)
 
 ## Development Workflows
 
@@ -149,12 +161,57 @@ Follow these patterns for commit messages:
 
 ### Language-Specific Conventions
 
-**As the project develops, document conventions for:**
-- Naming conventions (files, functions, variables, classes)
-- Code organization patterns
-- Import/export styles
-- Error handling approaches
-- Testing patterns
+#### Rust (Backend)
+
+**Naming Conventions:**
+- Files: `snake_case.rs`
+- Functions: `snake_case`
+- Structs/Enums: `PascalCase`
+- Constants: `SCREAMING_SNAKE_CASE`
+- Modules: `snake_case`
+
+**Code Organization:**
+- One module per file
+- Group related functionality in modules
+- Use `mod.rs` for module exports
+- Keep handlers, models, and services separate
+
+**Error Handling:**
+- Use `Result<T, E>` for recoverable errors
+- Use custom error types with `thiserror`
+- Return errors, don't panic in production code
+- Use `?` operator for error propagation
+
+**Testing:**
+- Unit tests in same file: `#[cfg(test)] mod tests`
+- Integration tests in `tests/` directory
+- Use `cargo test` for running tests
+
+#### PureScript (Frontend)
+
+**Naming Conventions:**
+- Files: `PascalCase.purs`
+- Functions: `camelCase`
+- Types: `PascalCase`
+- Type variables: lowercase `a`, `b`, etc.
+- Modules: `PascalCase.Nested.Module`
+
+**Code Organization:**
+- One module per file
+- Module name matches file path
+- Group components by feature
+- Separate API client from components
+
+**Error Handling:**
+- Use `Either` for operations that can fail
+- Use `Maybe` for optional values
+- Use `Aff` for asynchronous operations
+- Handle errors at component boundaries
+
+**Testing:**
+- Tests in `test/` directory
+- Use `spago test` for running tests
+- Use QuickCheck for property-based testing
 
 ### Testing Requirements
 
@@ -233,19 +290,98 @@ Before committing, verify:
 
 ### Project Setup
 
-**To be documented as project infrastructure is established:**
-- Installation steps
-- Environment configuration
-- Dependencies management
-- Build process
+**Initial setup:**
+```bash
+# 1. Clone repository
+git clone <repository-url>
+cd spire-board
+
+# 2. Set up environment variables
+cp .env.example .env
+# Edit .env with your configuration
+
+# 3. Start Docker services
+docker-compose up -d
+
+# 4. Set up backend
+cd backend
+cargo build
+cargo run migrate  # Run database migrations
+
+# 5. Set up frontend
+cd ../frontend
+spago build
+```
 
 ### Running the Project
 
-**To be documented:**
-- Development server commands
-- Build commands
-- Test commands
-- Linting and formatting
+**Backend (Rust/Actix):**
+```bash
+cd backend
+
+# Development mode (with auto-reload)
+cargo watch -x run
+
+# Production mode
+cargo run --release
+
+# Run tests
+cargo test
+
+# Run linter
+cargo clippy
+
+# Format code
+cargo fmt
+```
+
+**Frontend (PureScript/Halogen):**
+```bash
+cd frontend
+
+# Development mode (with auto-reload)
+spago build --watch
+
+# Build for production
+spago build
+
+# Run tests
+spago test
+
+# Format code
+purs-tidy format-in-place 'src/**/*.purs'
+```
+
+**Database:**
+```bash
+# Run migrations
+cd backend
+cargo run migrate
+
+# Create new migration
+cargo run migrate:create <migration-name>
+
+# Rollback migration
+cargo run migrate:rollback
+```
+
+**Docker:**
+```bash
+# Start all services
+docker-compose up -d
+
+# Start specific service
+docker-compose up -d postgres
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+
+# Rebuild containers
+docker-compose up -d --build
+```
 
 ### Debugging
 
@@ -257,22 +393,78 @@ Before committing, verify:
 
 ## Technology Stack
 
-**To be documented as technologies are chosen:**
-- Primary language(s)
-- Frameworks and libraries
-- Build tools
-- Testing frameworks
-- Database systems
-- Deployment platforms
+### Backend
+
+**Language:** Rust (latest stable)
+
+**Web Framework:**
+- [Actix Web](https://actix.rs/) - High-performance web framework
+- WebSocket support via Actix
+
+**Database:**
+- PostgreSQL 17
+- [Drizzle ORM](https://orm.drizzle.team/) - TypeScript ORM for database access
+
+**Key Dependencies:**
+- `actix-web` - Web framework
+- `actix-ws` - WebSocket support
+- Database driver for PostgreSQL
+
+### Frontend
+
+**Language:** PureScript
+
+**Build Tool:**
+- [Spago](https://github.com/purescript/spago) - PureScript package manager and build tool
+
+**UI Framework:**
+- [Halogen](https://github.com/purescript-halogen/purescript-halogen) - Declarative UI framework
+
+**Key Dependencies:**
+- `purescript-halogen` - UI framework
+- `purescript-affjax` - HTTP client (for API calls)
+- `purescript-routing` - Client-side routing
+
+### Development Environment
+
+**Containerization:**
+- Docker & Docker Compose for local development
+- PostgreSQL 17 container
+- Backend development container (optional)
+- Frontend development container (optional)
+
+**Development Tools:**
+- Rust toolchain (rustc, cargo)
+- PureScript compiler
+- Spago
+- Docker & Docker Compose
 
 ## Architecture Patterns
 
-**Document as the architecture emerges:**
-- Design patterns in use
-- State management approach
-- API design principles
-- Data flow patterns
-- Module organization
+### Overall Architecture
+
+**Client-Server Separation:**
+- Backend and frontend are completely separate applications
+- Communication via REST API and WebSocket
+- Backend serves as API-only server (no server-side rendering)
+
+**Backend Patterns:**
+- RESTful API design
+- WebSocket for real-time communication
+- Actix Web actors for concurrency
+- Drizzle ORM for type-safe database queries
+
+**Frontend Patterns:**
+- Component-based architecture (Halogen)
+- Functional programming paradigms (PureScript)
+- Type-safe API client
+- Client-side routing
+
+**Data Flow:**
+1. Frontend makes HTTP/WebSocket requests to backend
+2. Backend processes requests, queries database via Drizzle
+3. Backend returns JSON responses
+4. Frontend updates UI based on responses
 
 ## Dependencies
 
@@ -284,11 +476,69 @@ Before committing, verify:
 
 ## Environment Setup
 
-**Document environment requirements:**
-- Required tools and versions
-- Environment variables
-- Configuration files
-- IDE/editor recommendations
+### Required Tools and Versions
+
+**Backend Development:**
+- Rust (latest stable) - Install via [rustup](https://rustup.rs/)
+- Cargo (comes with Rust)
+- PostgreSQL client tools (for local development)
+
+**Frontend Development:**
+- Node.js (LTS version) - Required for PureScript tooling
+- PureScript compiler - Install via npm: `npm install -g purescript`
+- Spago - Install via npm: `npm install -g spago`
+
+**Docker Development:**
+- Docker (latest stable)
+- Docker Compose (latest stable)
+
+### Environment Variables
+
+Create a `.env` file in the root directory (do not commit to git):
+
+```bash
+# Database
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/spire_board
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=spire_board
+
+# Backend
+BACKEND_HOST=0.0.0.0
+BACKEND_PORT=8080
+
+# Frontend
+FRONTEND_PORT=3000
+API_BASE_URL=http://localhost:8080
+```
+
+### Docker Setup
+
+**Start development environment:**
+```bash
+docker-compose up -d
+```
+
+**Stop development environment:**
+```bash
+docker-compose down
+```
+
+**View logs:**
+```bash
+docker-compose logs -f
+```
+
+### IDE/Editor Recommendations
+
+**For Rust:**
+- VS Code with rust-analyzer extension
+- IntelliJ IDEA with Rust plugin
+
+**For PureScript:**
+- VS Code with PureScript IDE extension
+- Emacs with psc-ide mode
+- Vim with purescript-vim
 
 ## Troubleshooting
 
@@ -355,19 +605,47 @@ This CLAUDE.md should be updated when:
 ### Essential Commands
 
 ```bash
-# To be filled in as project develops
+# Git
 git status              # Check repository status
 git diff                # Review changes
 git log --oneline -10   # Recent commits
+
+# Backend (Rust)
+cd backend
+cargo build             # Build backend
+cargo run               # Run backend server
+cargo test              # Run tests
+cargo clippy            # Run linter
+cargo fmt               # Format code
+
+# Frontend (PureScript)
+cd frontend
+spago build             # Build frontend
+spago build --watch     # Build with auto-reload
+spago test              # Run tests
+spago repl              # Start REPL
+
+# Docker
+docker-compose up -d    # Start all services
+docker-compose down     # Stop all services
+docker-compose logs -f  # View logs
+docker-compose ps       # List running containers
+
+# Database
+docker-compose exec postgres psql -U postgres -d spire_board
 ```
 
 ### File Locations
 
-**Update as project structure is established:**
-- Tests: TBD
-- Configuration: TBD
-- Documentation: TBD
-- Build output: TBD
+- **Backend Source:** `backend/src/`
+- **Backend Tests:** `backend/tests/`
+- **Frontend Source:** `frontend/src/`
+- **Frontend Tests:** `frontend/test/`
+- **Database Migrations:** `backend/migrations/`
+- **Docker Config:** `docker-compose.yml`
+- **Documentation:** `docs/`
+- **Build Output (Backend):** `backend/target/`
+- **Build Output (Frontend):** `frontend/output/`
 
 ### Useful Patterns
 
@@ -383,8 +661,9 @@ git log --oneline -10   # Recent commits
 
 - **Created:** 2026-01-02
 - **Last Updated:** 2026-01-02
-- **Version:** 1.0.0
+- **Version:** 1.1.0
 - **Maintained By:** AI assistants working on spire-board
+- **Status:** Technology stack defined, ready for implementation
 
 ---
 
