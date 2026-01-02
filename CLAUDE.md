@@ -209,6 +209,8 @@ Follow these patterns for commit messages:
 - Module name matches file path
 - Group components by feature
 - Separate API client from components
+- Use Capability pattern for dependency injection
+- Follow [Real World Halogen](https://thomashoneyman.com/guides/real-world-halogen/) architecture patterns
 
 **Error Handling:**
 - Use `Either` for operations that can fail
@@ -444,6 +446,10 @@ docker-compose up -d --build
 - `purescript-affjax` - HTTP client (for API calls)
 - `purescript-routing` - Client-side routing
 
+**Architecture Reference:**
+- [Real World Halogen Guide](https://thomashoneyman.com/guides/real-world-halogen/) - Comprehensive guide for building production Halogen applications
+- [Real World Halogen Example](https://github.com/thomashoneyman/purescript-halogen-realworld) - Complete implementation following the guide
+
 ### Development Environment
 
 **Containerization:**
@@ -480,6 +486,9 @@ docker-compose up -d --build
 - Functional programming paradigms (PureScript)
 - Type-safe API client
 - Client-side routing
+- Capability pattern for dependency injection and testability
+- AppM monad for application-wide effects
+- Reference: [Real World Halogen](https://thomashoneyman.com/guides/real-world-halogen/) for production-ready patterns
 
 **Data Flow:**
 1. Frontend makes HTTP/WebSocket requests to backend
@@ -681,6 +690,10 @@ docker-compose exec postgres psql -U postgres -d spire_board
 - API calls
 - State updates
 - Component structure
+
+**Reference Implementations:**
+- [Real World Halogen](https://github.com/thomashoneyman/purescript-halogen-realworld) - Production-ready PureScript/Halogen patterns
+- [Real World Halogen Guide](https://thomashoneyman.com/guides/real-world-halogen/) - Comprehensive architecture guide
 
 ---
 
