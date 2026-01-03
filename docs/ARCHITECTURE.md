@@ -87,8 +87,9 @@ let user = sqlx::query_as!(
 #### Migration Strategy
 
 - **Version-controlled migrations** in `backend/migrations/`
-- **Forward-only migrations** (no rollbacks in production)
-- **Use SQLx CLI:** `cargo sqlx migrate add <name>`
+- **Reversible migrations** (`.up.sql` / `.down.sql` format)
+- **Use SQLx CLI:** `cargo sqlx migrate add -r <name>`
+- **Rollback support:** `cargo sqlx migrate revert`
 
 ### Error Handling
 
@@ -401,6 +402,189 @@ frontend/src/
 - **Caching:** Incremental builds
 - **Task Pipeline:** Parallel task execution
 - **Developer Experience:** Simple configuration
+
+## Data Model Design
+
+### Design Philosophy
+
+The data model for spire-board follows these core principles:
+
+1. **Separation of Concerns**: Clear distinction between master data, session data, and ephemeral data
+2. **Flexibility over Normalization**: Use JSONB for complex, evolving data structures
+3. **Type Safety at Application Layer**: Leverage Rust's type system for validation
+4. **Future-Proof Schema**: Design for extensibility without frequent migrations
+
+### Data Persistence Levels
+
+Game data is categorized into three persistence levels:
+
+#### 1. Master Data (Permanent Storage - PostgreSQL)
+
+Static game definitions that rarely change:
+- **Card definitions** (player cards, event cards, item cards)
+- **Enemy definitions** (stats, attack patterns)
+- **Map node templates** (shop, combat, campfire, event types)
+
+**Characteristics:**
+- Stored in PostgreSQL with proper schema
+- Versioned via migrations
+- Shared across all game sessions
+
+#### 2. Session Data (Conditional Persistence - PostgreSQL)
+
+Player progress and game state that needs to be saved:
+- **Game runs** (active playthroughs)
+- **Player state** (HP, gold, current deck)
+- **Map progress** (current node, visited nodes)
+
+**Characteristics:**
+- Persisted if save/load functionality is required
+- Can be deleted when run is completed
+- Player-specific data
+
+#### 3. Ephemeral Data (In-Memory Only - Rust Structs)
+
+Temporary state during gameplay that doesn't need persistence:
+- **Combat state** (current turn, energy, hand, draw/discard piles)
+- **Shop inventory** (available cards/relics for current visit)
+- **Event choices** (active event options)
+
+**Characteristics:**
+- Managed in-memory via Rust structs
+- Discarded when scene/encounter ends
+- Not stored in database
+
+### JSONB vs Normalization Trade-off
+
+#### Decision: Use JSONB for Card Effects
+
+**Rationale:**
+Card effects are highly variable and complex. A normalized approach would require:
+- Multiple tables (`card_effects`, `effect_parameters`, `effect_conditions`)
+- Frequent schema migrations for new effect types
+- Complex JOIN queries to reconstruct card data
+
+**JSONB Advantages:**
+- ✅ **Flexibility**: Add new effect types without migrations
+- ✅ **Simplicity**: Single query to fetch complete card data
+- ✅ **Developer Experience**: Easy to understand and modify
+- ✅ **Performance**: GIN index for effect searches
+
+**JSONB Disadvantages:**
+- ❌ **Type Safety**: JSON structure not enforced by database
+- ❌ **Query Complexity**: More difficult to query specific effect types
+- ❌ **Schema Evolution**: Changes require application-level migration
+
+**Mitigation Strategy:**
+- Use Rust's strong type system to validate JSON structure
+- Define clear JSON schemas in documentation
+- Use serde for serialization/deserialization with strict types
+
+**When to Use JSONB:**
+- Complex, nested data structures
+- Frequently changing schemas
+- Data that varies significantly between entities
+- Performance is acceptable (indexed JSONB is fast)
+
+**When to Normalize:**
+- Simple, stable data structures
+- Frequent queries on specific fields
+- Need for referential integrity
+- Complex aggregations required
+
+### Card Upgrade Strategy
+
+**Approach: Separate Entities with Reference**
+
+Each upgraded card is a separate database row, linked via `base_card_id`:
+
+```sql
+-- Base card
+base_card_id: NULL
+
+-- Upgraded card
+base_card_id: <UUID of base card>
+```
+
+**Rationale:**
+- ✅ **Simplicity**: Each card is self-contained
+- ✅ **Flexibility**: Upgrades can change any property (cost, effects, etc.)
+- ✅ **Query Efficiency**: Direct lookup without conditional logic
+- ✅ **Extensibility**: Supports multiple upgrade paths in future
+
+**Alternative Considered (Single Entity):**
+```sql
+-- Store both versions in one row
+is_upgraded: BOOLEAN
+base_cost: INTEGER
+upgraded_cost: INTEGER
+base_effects: JSONB
+upgraded_effects: JSONB
+```
+
+**Rejected Because:**
+- ❌ Violates single responsibility principle
+- ❌ More complex queries
+- ❌ Difficult to support multiple upgrade paths
+- ❌ Wastes space if only base card exists
+
+### Effect Data Structure
+
+Effects are stored as JSONB arrays with a consistent interface:
+
+```json
+[
+  {
+    "type": "block",
+    "value": 3,
+    "target": "any_player"
+  },
+  {
+    "type": "add_to_deck",
+    "card": "dizziness",
+    "position": "top",
+    "target": "self",
+    "metadata": {}
+  }
+]
+```
+
+**Common Fields:**
+- `type` (string, required): Effect identifier
+- `target` (string, required): Target specification
+- `value` (integer, optional): Numeric parameter
+- `metadata` (object, optional): Effect-specific data
+
+**Design Benefits:**
+- Consistent interface across all effect types
+- Easy to add new effect types
+- Self-documenting (type field indicates behavior)
+- Rust can deserialize to enum variants
+
+**Future Considerations:**
+- Conditional effects: `{"type": "conditional", "condition": {...}, "then": {...}}`
+- Dynamic values: `{"type": "damage", "value_source": "hand_size", "multiplier": 2}`
+- Effect chains: `{"type": "sequence", "effects": [...]}`
+
+### Schema Versioning Strategy
+
+**Migrations:**
+- Use reversible migrations (`.up.sql` / `.down.sql`)
+- Each migration is atomic and testable
+- Document breaking changes in migration comments
+- Keep migrations small and focused
+
+**JSON Schema Evolution:**
+- Application-level validation for JSONB fields
+- Version field in JSON for future compatibility
+- Gradual migration via application code
+- Document JSON schema changes in `DATABASE.md`
+
+### Database References
+
+For detailed schema information, see:
+- [Database Schema Documentation](./DATABASE.md) - Complete table definitions and ER diagrams
+- [API Specification](./openapi.yaml) - API contracts and data formats
 
 ## Future Considerations
 

@@ -1,0 +1,574 @@
+openapi: 3.0.3
+info:
+  title: Spire Board API
+  description: |
+    デッキ構築型ボードゲーム「Spire Board」のREST API仕様書
+
+    ## 概要
+    このAPIは、プレイヤーカード、ゲーム進行、マップなどのゲームデータを管理します。
+
+    ## 認証
+    現在、認証は実装されていません（開発中）。
+
+  version: 0.1.0
+  contact:
+    name: Spire Board Development Team
+
+servers:
+  - url: http://localhost:8080
+    description: ローカル開発環境
+  - url: http://0.0.0.0:8080
+    description: Docker開発環境
+
+tags:
+  - name: player-cards
+    description: プレイヤーカード管理
+  - name: health
+    description: ヘルスチェック
+
+paths:
+  /:
+    get:
+      summary: ウェルカムメッセージ
+      description: APIのウェルカムメッセージとバージョン情報を返します
+      operationId: getIndex
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Welcome to spire-board API"
+                  version:
+                    type: string
+                    example: "0.1.0"
+
+  /health:
+    get:
+      summary: ヘルスチェック
+      description: サービスの稼働状態を確認します
+      operationId: healthCheck
+      tags:
+        - health
+      responses:
+        '200':
+          description: サービス稼働中
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "ok"
+                  service:
+                    type: string
+                    example: "spire-board-backend"
+
+  /api/player-cards:
+    get:
+      summary: 全プレイヤーカード一覧取得
+      description: データベースに登録されている全てのプレイヤーカードを名前順で取得します
+      operationId: listPlayerCards
+      tags:
+        - player-cards
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlayerCard'
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: プレイヤーカード作成
+      description: 新しいプレイヤーカードを作成します
+      operationId: createPlayerCard
+      tags:
+        - player-cards
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePlayerCard'
+            examples:
+              basic:
+                summary: 基本的なスキルカード
+                value:
+                  name: "やせ我慢"
+                  cost: 1
+                  card_type: "skill"
+                  color: "red"
+                  effects:
+                    - type: "block"
+                      value: 3
+                      target: "any_player"
+                    - type: "add_to_deck"
+                      card: "dizziness"
+                      position: "top"
+                      target: "self"
+                  unlock_requirement: null
+                  base_card_id: null
+              upgraded:
+                summary: アップグレード版カード
+                value:
+                  name: "やせ我慢+"
+                  cost: 1
+                  card_type: "skill"
+                  color: "red"
+                  effects:
+                    - type: "block"
+                      value: 5
+                      target: "any_player"
+                    - type: "add_to_deck"
+                      card: "dizziness"
+                      position: "top"
+                      target: "self"
+                  unlock_requirement: null
+                  base_card_id: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerCard'
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/player-cards/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        description: プレイヤーカードのUUID
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: プレイヤーカード取得
+      description: 指定されたIDのプレイヤーカードを取得します
+      operationId: getPlayerCard
+      tags:
+        - player-cards
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerCard'
+        '404':
+          description: カードが見つかりません
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "プレイヤーカードが見つかりません"
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      summary: プレイヤーカード更新
+      description: 指定されたIDのプレイヤーカードを更新します（部分更新対応）
+      operationId: updatePlayerCard
+      tags:
+        - player-cards
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePlayerCard'
+            examples:
+              partial:
+                summary: コストのみ更新
+                value:
+                  cost: 2
+              full:
+                summary: 複数フィールド更新
+                value:
+                  name: "やせ我慢改"
+                  cost: 0
+                  effects:
+                    - type: "block"
+                      value: 10
+                      target: "self"
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerCard'
+        '400':
+          description: リクエストエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "更新するフィールドがありません"
+        '404':
+          description: カードが見つかりません
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      summary: プレイヤーカード削除
+      description: 指定されたIDのプレイヤーカードを削除します
+      operationId: deletePlayerCard
+      tags:
+        - player-cards
+      responses:
+        '204':
+          description: 削除成功（レスポンスボディなし）
+        '404':
+          description: カードが見つかりません
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/player-cards/color/{color}:
+    parameters:
+      - name: color
+        in: path
+        required: true
+        description: カード色（red, gray, black, gold）
+        schema:
+          type: string
+          enum:
+            - red
+            - gray
+            - black
+            - gold
+
+    get:
+      summary: 色別カード取得
+      description: 指定された色のプレイヤーカードを全て取得します
+      operationId: getPlayerCardsByColor
+      tags:
+        - player-cards
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlayerCard'
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/player-cards/upgraded/{base_card_id}:
+    parameters:
+      - name: base_card_id
+        in: path
+        required: true
+        description: ベースカードのUUID
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: アップグレード版カード取得
+      description: 指定されたベースカードのアップグレード版を取得します
+      operationId: getUpgradedPlayerCard
+      tags:
+        - player-cards
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlayerCard'
+        '404':
+          description: アップグレード版が見つかりません
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: "アップグレード版のカードが見つかりません"
+        '500':
+          description: サーバーエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  schemas:
+    PlayerCard:
+      type: object
+      description: プレイヤーカード
+      required:
+        - id
+        - name
+        - cost
+        - card_type
+        - color
+        - effects
+        - created_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: カードID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        name:
+          type: string
+          maxLength: 100
+          description: カード名
+          example: "やせ我慢"
+        cost:
+          type: integer
+          minimum: 0
+          description: エナジーコスト
+          example: 1
+        card_type:
+          type: string
+          enum:
+            - attack
+            - skill
+            - power
+          description: カード種別
+          example: "skill"
+        color:
+          type: string
+          enum:
+            - red
+            - gray
+            - black
+            - gold
+          description: カード色
+          example: "red"
+        effects:
+          type: array
+          description: カード効果の配列
+          items:
+            $ref: '#/components/schemas/CardEffect'
+          example:
+            - type: "block"
+              value: 3
+              target: "any_player"
+            - type: "add_to_deck"
+              card: "dizziness"
+              position: "top"
+              target: "self"
+        unlock_requirement:
+          type: string
+          nullable: true
+          enum:
+            - "1"
+            - "2"
+            - "3"
+            - "C"
+            - null
+          description: アンロック条件
+          example: null
+        base_card_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: アップグレード元カードID（NULL=ベースカード）
+          example: null
+        created_at:
+          type: string
+          format: date-time
+          description: 作成日時
+          example: "2026-01-03T12:00:00Z"
+
+    CreatePlayerCard:
+      type: object
+      description: プレイヤーカード作成リクエスト
+      required:
+        - name
+        - cost
+        - card_type
+        - color
+        - effects
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: カード名
+          example: "やせ我慢"
+        cost:
+          type: integer
+          minimum: 0
+          description: エナジーコスト
+          example: 1
+        card_type:
+          type: string
+          enum:
+            - attack
+            - skill
+            - power
+          description: カード種別
+          example: "skill"
+        color:
+          type: string
+          enum:
+            - red
+            - gray
+            - black
+            - gold
+          description: カード色
+          example: "red"
+        effects:
+          type: array
+          description: カード効果の配列
+          items:
+            $ref: '#/components/schemas/CardEffect'
+          example:
+            - type: "block"
+              value: 3
+              target: "any_player"
+        unlock_requirement:
+          type: string
+          nullable: true
+          enum:
+            - "1"
+            - "2"
+            - "3"
+            - "C"
+            - null
+          description: アンロック条件
+          example: null
+        base_card_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: アップグレード元カードID
+          example: null
+
+    UpdatePlayerCard:
+      type: object
+      description: プレイヤーカード更新リクエスト（部分更新対応）
+      properties:
+        name:
+          type: string
+          maxLength: 100
+          description: カード名
+          example: "やせ我慢改"
+        cost:
+          type: integer
+          minimum: 0
+          description: エナジーコスト
+          example: 2
+        card_type:
+          type: string
+          enum:
+            - attack
+            - skill
+            - power
+          description: カード種別
+        color:
+          type: string
+          enum:
+            - red
+            - gray
+            - black
+            - gold
+          description: カード色
+        effects:
+          type: array
+          description: カード効果の配列
+          items:
+            $ref: '#/components/schemas/CardEffect'
+        unlock_requirement:
+          type: string
+          nullable: true
+          enum:
+            - "1"
+            - "2"
+            - "3"
+            - "C"
+            - null
+          description: アンロック条件
+        base_card_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: アップグレード元カードID
+
+    CardEffect:
+      type: object
+      description: カード効果（効果タイプごとに異なるフィールドを持つ）
+      required:
+        - type
+        - target
+      properties:
+        type:
+          type: string
+          description: 効果タイプ
+          example: "block"
+        target:
+          type: string
+          description: 対象
+          example: "any_player"
+        value:
+          type: integer
+          description: 数値パラメータ（オプション）
+          example: 3
+      additionalProperties: true
+      example:
+        type: "block"
+        value: 3
+        target: "any_player"
+
+    Error:
+      type: object
+      description: エラーレスポンス
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: エラーメッセージ
+          example: "プレイヤーカードが見つかりません"
