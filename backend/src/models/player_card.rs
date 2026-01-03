@@ -4,7 +4,7 @@ use serde_json::Value as JsonValue;
 use sqlx::FromRow;
 use uuid::Uuid;
 
-/// Player card definition for deck-building gameplay
+/// デッキ構築ゲームプレイ用のプレイヤーカード定義
 #[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
 pub struct PlayerCard {
     pub id: Uuid,
@@ -12,17 +12,17 @@ pub struct PlayerCard {
     pub cost: i32,
     pub card_type: String,
     pub color: String,
-    /// Array of effects in JSON format
-    /// Each effect has: type, target, value, and optional metadata
-    /// Example: [{"type": "block", "value": 3, "target": "any_player"}]
+    /// JSON形式の効果配列
+    /// 各効果には type, target, value と任意の metadata が含まれる
+    /// 例: [{"type": "block", "value": 3, "target": "any_player"}]
     pub effects: JsonValue,
     pub unlock_requirement: Option<String>,
-    /// NULL for base cards, references base card ID for upgraded versions
+    /// ベースカードの場合はNULL、アップグレード版の場合はベースカードIDを参照
     pub base_card_id: Option<Uuid>,
     pub created_at: DateTime<Utc>,
 }
 
-/// Data structure for creating a new player card
+/// 新しいプレイヤーカードを作成するためのデータ構造
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CreatePlayerCard {
     pub name: String,
@@ -34,7 +34,7 @@ pub struct CreatePlayerCard {
     pub base_card_id: Option<Uuid>,
 }
 
-/// Data structure for updating a player card
+/// プレイヤーカードを更新するためのデータ構造
 #[derive(Debug, Serialize, Deserialize)]
 pub struct UpdatePlayerCard {
     pub name: Option<String>,

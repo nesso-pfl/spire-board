@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use crate::models::{CreatePlayerCard, PlayerCard, UpdatePlayerCard};
 
-/// GET /api/player-cards - List all player cards
+/// GET /api/player-cards - 全てのプレイヤーカードを一覧取得
 pub async fn list_cards(pool: web::Data<PgPool>) -> impl Responder {
     match sqlx::query_as::<_, PlayerCard>(
         "SELECT id, name, cost, card_type, color, effects, unlock_requirement, base_card_id, created_at
@@ -16,15 +16,15 @@ pub async fn list_cards(pool: web::Data<PgPool>) -> impl Responder {
     {
         Ok(cards) => HttpResponse::Ok().json(cards),
         Err(e) => {
-            tracing::error!("Failed to fetch player cards: {}", e);
+            tracing::error!("プレイヤーカードの取得に失敗しました: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to fetch player cards"
+                "error": "プレイヤーカードの取得に失敗しました"
             }))
         }
     }
 }
 
-/// GET /api/player-cards/{id} - Get a specific player card
+/// GET /api/player-cards/{id} - 特定のプレイヤーカードを取得
 pub async fn get_card(pool: web::Data<PgPool>, card_id: web::Path<Uuid>) -> impl Responder {
     match sqlx::query_as::<_, PlayerCard>(
         "SELECT id, name, cost, card_type, color, effects, unlock_requirement, base_card_id, created_at
@@ -37,18 +37,18 @@ pub async fn get_card(pool: web::Data<PgPool>, card_id: web::Path<Uuid>) -> impl
     {
         Ok(Some(card)) => HttpResponse::Ok().json(card),
         Ok(None) => HttpResponse::NotFound().json(serde_json::json!({
-            "error": "Player card not found"
+            "error": "プレイヤーカードが見つかりません"
         })),
         Err(e) => {
-            tracing::error!("Failed to fetch player card: {}", e);
+            tracing::error!("プレイヤーカードの取得に失敗しました: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to fetch player card"
+                "error": "プレイヤーカードの取得に失敗しました"
             }))
         }
     }
 }
 
-/// POST /api/player-cards - Create a new player card
+/// POST /api/player-cards - 新しいプレイヤーカードを作成
 pub async fn create_card(
     pool: web::Data<PgPool>,
     card: web::Json<CreatePlayerCard>,
@@ -69,19 +69,19 @@ pub async fn create_card(
     .await
     {
         Ok(new_card) => {
-            tracing::info!("Created player card: {} (id: {})", new_card.name, new_card.id);
+            tracing::info!("プレイヤーカードを作成しました: {} (id: {})", new_card.name, new_card.id);
             HttpResponse::Created().json(new_card)
         }
         Err(e) => {
-            tracing::error!("Failed to create player card: {}", e);
+            tracing::error!("プレイヤーカードの作成に失敗しました: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to create player card"
+                "error": "プレイヤーカードの作成に失敗しました"
             }))
         }
     }
 }
 
-/// PUT /api/player-cards/{id} - Update a player card
+/// PUT /api/player-cards/{id} - プレイヤーカードを更新
 pub async fn update_card(
     pool: web::Data<PgPool>,
     card_id: web::Path<Uuid>,
@@ -89,7 +89,7 @@ pub async fn update_card(
 ) -> impl Responder {
     let card_id = card_id.into_inner();
 
-    // Build dynamic update query based on provided fields
+    // 指定されたフィールドに基づいて動的な更新クエリを構築
     let mut query = String::from("UPDATE player_cards SET ");
     let mut set_clauses = Vec::new();
     let mut param_count = 1;
@@ -125,7 +125,7 @@ pub async fn update_card(
 
     if set_clauses.is_empty() {
         return HttpResponse::BadRequest().json(serde_json::json!({
-            "error": "No fields to update"
+            "error": "更新するフィールドがありません"
         }));
     }
 
@@ -160,22 +160,22 @@ pub async fn update_card(
 
     match query_builder.fetch_optional(pool.get_ref()).await {
         Ok(Some(updated_card)) => {
-            tracing::info!("Updated player card: {}", card_id);
+            tracing::info!("プレイヤーカードを更新しました: {}", card_id);
             HttpResponse::Ok().json(updated_card)
         }
         Ok(None) => HttpResponse::NotFound().json(serde_json::json!({
-            "error": "Player card not found"
+            "error": "プレイヤーカードが見つかりません"
         })),
         Err(e) => {
-            tracing::error!("Failed to update player card: {}", e);
+            tracing::error!("プレイヤーカードの更新に失敗しました: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to update player card"
+                "error": "プレイヤーカードの更新に失敗しました"
             }))
         }
     }
 }
 
-/// DELETE /api/player-cards/{id} - Delete a player card
+/// DELETE /api/player-cards/{id} - プレイヤーカードを削除
 pub async fn delete_card(pool: web::Data<PgPool>, card_id: web::Path<Uuid>) -> impl Responder {
     let card_id = card_id.into_inner();
 
@@ -186,24 +186,24 @@ pub async fn delete_card(pool: web::Data<PgPool>, card_id: web::Path<Uuid>) -> i
     {
         Ok(result) => {
             if result.rows_affected() > 0 {
-                tracing::info!("Deleted player card: {}", card_id);
+                tracing::info!("プレイヤーカードを削除しました: {}", card_id);
                 HttpResponse::NoContent().finish()
             } else {
                 HttpResponse::NotFound().json(serde_json::json!({
-                    "error": "Player card not found"
+                    "error": "プレイヤーカードが見つかりません"
                 }))
             }
         }
         Err(e) => {
-            tracing::error!("Failed to delete player card: {}", e);
+            tracing::error!("プレイヤーカードの削除に失敗しました: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to delete player card"
+                "error": "プレイヤーカードの削除に失敗しました"
             }))
         }
     }
 }
 
-/// GET /api/player-cards/color/{color} - Get cards by color
+/// GET /api/player-cards/color/{color} - 色別にカードを取得
 pub async fn get_cards_by_color(pool: web::Data<PgPool>, color: web::Path<String>) -> impl Responder {
     match sqlx::query_as::<_, PlayerCard>(
         "SELECT id, name, cost, card_type, color, effects, unlock_requirement, base_card_id, created_at
@@ -217,15 +217,15 @@ pub async fn get_cards_by_color(pool: web::Data<PgPool>, color: web::Path<String
     {
         Ok(cards) => HttpResponse::Ok().json(cards),
         Err(e) => {
-            tracing::error!("Failed to fetch player cards by color: {}", e);
+            tracing::error!("色別のプレイヤーカード取得に失敗しました: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to fetch player cards by color"
+                "error": "色別のプレイヤーカード取得に失敗しました"
             }))
         }
     }
 }
 
-/// GET /api/player-cards/upgraded/{base_card_id} - Get upgraded version of a card
+/// GET /api/player-cards/upgraded/{base_card_id} - カードのアップグレード版を取得
 pub async fn get_upgraded_card(pool: web::Data<PgPool>, base_card_id: web::Path<Uuid>) -> impl Responder {
     match sqlx::query_as::<_, PlayerCard>(
         "SELECT id, name, cost, card_type, color, effects, unlock_requirement, base_card_id, created_at
@@ -238,12 +238,12 @@ pub async fn get_upgraded_card(pool: web::Data<PgPool>, base_card_id: web::Path<
     {
         Ok(Some(card)) => HttpResponse::Ok().json(card),
         Ok(None) => HttpResponse::NotFound().json(serde_json::json!({
-            "error": "Upgraded card not found"
+            "error": "アップグレード版のカードが見つかりません"
         })),
         Err(e) => {
-            tracing::error!("Failed to fetch upgraded card: {}", e);
+            tracing::error!("アップグレード版カードの取得に失敗しました: {}", e);
             HttpResponse::InternalServerError().json(serde_json::json!({
-                "error": "Failed to fetch upgraded card"
+                "error": "アップグレード版カードの取得に失敗しました"
             }))
         }
     }

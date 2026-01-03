@@ -1,27 +1,27 @@
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use std::env;
 
-/// Creates a PostgreSQL connection pool
+/// PostgreSQL接続プールを作成
 pub async fn create_pool() -> Result<PgPool, sqlx::Error> {
     let database_url = env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgresql://postgres:postgres@localhost:5432/spire_board".to_string());
 
-    tracing::info!("Connecting to database: {}", database_url);
+    tracing::info!("データベースに接続中: {}", database_url);
 
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&database_url)
         .await?;
 
-    tracing::info!("Database connection pool established");
+    tracing::info!("データベース接続プールを確立しました");
 
     Ok(pool)
 }
 
-/// Runs database migrations
+/// データベースマイグレーションを実行
 pub async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
-    tracing::info!("Running database migrations");
+    tracing::info!("データベースマイグレーション実行中");
     sqlx::migrate!("./migrations").run(pool).await?;
-    tracing::info!("Database migrations completed");
+    tracing::info!("データベースマイグレーション完了");
     Ok(())
 }

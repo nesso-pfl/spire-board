@@ -1,5 +1,5 @@
--- Create player_cards table
--- This table stores player card definitions including attacks, skills, and powers
+-- player_cardsテーブルを作成
+-- このテーブルは攻撃、スキル、パワーを含むプレイヤーカード定義を保存
 
 CREATE TABLE player_cards (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -13,16 +13,16 @@ CREATE TABLE player_cards (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Indexes for common queries
+-- 一般的なクエリ用のインデックス
 CREATE INDEX idx_player_cards_base_card_id ON player_cards(base_card_id);
 CREATE INDEX idx_player_cards_color ON player_cards(color);
 CREATE INDEX idx_player_cards_type ON player_cards(card_type);
 CREATE INDEX idx_player_cards_cost ON player_cards(cost);
 
--- Index for searching effects
+-- 効果検索用のインデックス
 CREATE INDEX idx_player_cards_effects ON player_cards USING GIN (effects);
 
--- Comments for documentation
-COMMENT ON TABLE player_cards IS 'Player card definitions for deck-building gameplay';
-COMMENT ON COLUMN player_cards.effects IS 'Array of effects in JSON format. Each effect has type, target, value, and optional metadata';
-COMMENT ON COLUMN player_cards.base_card_id IS 'NULL for base cards, references base card for upgraded versions';
+-- ドキュメント用のコメント
+COMMENT ON TABLE player_cards IS 'デッキ構築ゲームプレイ用のプレイヤーカード定義';
+COMMENT ON COLUMN player_cards.effects IS 'JSON形式の効果配列。各効果には type, target, value と任意の metadata が含まれる';
+COMMENT ON COLUMN player_cards.base_card_id IS 'ベースカードの場合はNULL、アップグレード版の場合はベースカードを参照';

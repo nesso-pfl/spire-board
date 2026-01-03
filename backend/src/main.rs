@@ -21,10 +21,10 @@ async fn index() -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // Load environment variables
+    // 環境変数を読み込む
     dotenv::dotenv().ok();
 
-    // Initialize tracing
+    // ログ出力を初期化
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()
@@ -32,15 +32,15 @@ async fn main() -> std::io::Result<()> {
         )
         .init();
 
-    // Create database connection pool
+    // データベース接続プールを作成
     let pool = db::create_pool()
         .await
-        .expect("Failed to create database pool");
+        .expect("データベース接続プールの作成に失敗しました");
 
-    // Run migrations
+    // マイグレーションを実行
     db::run_migrations(&pool)
         .await
-        .expect("Failed to run migrations");
+        .expect("マイグレーション実行に失敗しました");
 
     let host = env::var("BACKEND_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
     let port = env::var("BACKEND_PORT").unwrap_or_else(|_| "8080".to_string());
@@ -53,7 +53,7 @@ async fn main() -> std::io::Result<()> {
             .app_data(web::Data::new(pool.clone()))
             .route("/", web::get().to(index))
             .route("/health", web::get().to(health_check))
-            // Player card endpoints
+            // プレイヤーカードエンドポイント
             .route("/api/player-cards", web::get().to(handlers::player_card_handler::list_cards))
             .route("/api/player-cards", web::post().to(handlers::player_card_handler::create_card))
             .route("/api/player-cards/{id}", web::get().to(handlers::player_card_handler::get_card))
