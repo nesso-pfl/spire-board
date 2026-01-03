@@ -1,6 +1,10 @@
 use actix_web::{web, App, HttpResponse, HttpServer, Responder};
 use std::env;
 
+mod db;
+mod handlers;
+mod models;
+
 async fn health_check() -> impl Responder {
     HttpResponse::Ok().json(serde_json::json!({
         "status": "ok",
@@ -17,10 +21,10 @@ async fn index() -> impl Responder {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    // Load environment variables
+    // 環境変数を読み込む
     dotenv::dotenv().ok();
 
-    // Initialize tracing
+    // ログ出力を初期化
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()
@@ -28,16 +32,35 @@ async fn main() -> std::io::Result<()> {
         )
         .init();
 
+    // データベース接続プールを作成
+    let pool = db::create_pool()
+        .await
+        .expect("データベース接続プールの作成に失敗しました");
+
+    // マイグレーションを実行
+    db::run_migrations(&pool)
+        .await
+        .expect("マイグレーション実行に失敗しました");
+
     let host = env::var("BACKEND_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
     let port = env::var("BACKEND_PORT").unwrap_or_else(|_| "8080".to_string());
     let bind_address = format!("{}:{}", host, port);
 
     tracing::info!("Starting server at http://{}", bind_address);
 
-    HttpServer::new(|| {
+    HttpServer::new(move || {
         App::new()
+            .app_data(web::Data::new(pool.clone()))
             .route("/", web::get().to(index))
             .route("/health", web::get().to(health_check))
+            // プレイヤーカードエンドポイント
+            .route("/api/player-cards", web::get().to(handlers::player_card_handler::list_cards))
+            .route("/api/player-cards", web::post().to(handlers::player_card_handler::create_card))
+            .route("/api/player-cards/{id}", web::get().to(handlers::player_card_handler::get_card))
+            .route("/api/player-cards/{id}", web::put().to(handlers::player_card_handler::update_card))
+            .route("/api/player-cards/{id}", web::delete().to(handlers::player_card_handler::delete_card))
+            .route("/api/player-cards/color/{color}", web::get().to(handlers::player_card_handler::get_cards_by_color))
+            .route("/api/player-cards/upgraded/{base_card_id}", web::get().to(handlers::player_card_handler::get_upgraded_card))
     })
     .bind(&bind_address)?
     .run()
